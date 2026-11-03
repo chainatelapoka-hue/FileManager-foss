@@ -9,7 +9,7 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 enum class SortBy(val label: String) {
-    NAME("নাম"), SIZE("আকার"), DATE("তারিখ"), TYPE("ধরন")
+    NAME("Name"), SIZE("Size"), DATE("Date"), TYPE("Type")
 }
 
 class FileItem(val file: File) {

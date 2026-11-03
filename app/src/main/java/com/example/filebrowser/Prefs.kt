@@ -37,17 +37,17 @@ class SettingsState(private val prefs: Prefs) {
     var sort by mutableStateOf(prefs.defaultSort)
         private set
 
-    fun setTheme(value: ThemeMode) {
+    fun updateTheme(value: ThemeMode) {
         prefs.theme = value
         theme = value
     }
 
-    fun setShowHidden(value: Boolean) {
+    fun updateShowHidden(value: Boolean) {
         prefs.showHidden = value
         showHidden = value
     }
 
-    fun setSort(value: SortBy) {
+    fun updateSort(value: SortBy) {
         prefs.defaultSort = value
         sort = value
     }

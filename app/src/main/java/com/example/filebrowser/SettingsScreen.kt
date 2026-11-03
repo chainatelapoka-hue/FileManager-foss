@@ -61,7 +61,7 @@ fun SettingsScreen(settings: SettingsState) {
         SettingsSection("Theme") {
             ThemeMode.entries.forEach { mode ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = settings.theme == mode, onClick = { settings.setTheme(mode) })
+                    RadioButton(selected = settings.theme == mode, onClick = { settings.updateTheme(mode) })
                     Text(mode.label)
                 }
             }
@@ -71,12 +71,12 @@ fun SettingsScreen(settings: SettingsState) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Show hidden files")
                 Spacer(Modifier.weight(1f))
-                Switch(checked = settings.showHidden, onCheckedChange = { settings.setShowHidden(it) })
+                Switch(checked = settings.showHidden, onCheckedChange = { settings.updateShowHidden(it) })
             }
             Text("Default sort order")
             SortBy.entries.forEach { sort ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = settings.sort == sort, onClick = { settings.setSort(sort) })
+                    RadioButton(selected = settings.sort == sort, onClick = { settings.updateSort(sort) })
                     Text(sort.label)
                 }
             }
