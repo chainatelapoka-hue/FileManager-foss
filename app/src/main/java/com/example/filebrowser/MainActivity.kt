@@ -20,6 +20,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Wifi
@@ -64,6 +66,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -91,6 +95,7 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
 
     private val vm: FileExplorerViewModel by viewModels()
+    private val settings by lazy { SettingsState(Prefs(this)) }
     private val dropbox by lazy { DropboxRepository(this, BuildConfig.DROPBOX_APP_KEY) }
     private val drive by lazy { DriveRepository(this) }
 
@@ -110,7 +115,12 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme {
+            val dark = when (settings.theme) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
                 Surface(Modifier.fillMaxSize()) {
                     val context = LocalContext.current
                     var granted by remember { mutableStateOf(hasStoragePermission(context)) }
@@ -118,7 +128,7 @@ class MainActivity : ComponentActivity() {
                         granted = hasStoragePermission(context)   // সেটিং থেকে ফিরলে আবার চেক
                     }
                     if (granted) {
-                        AppRoot(vm, dropbox, drive)
+                        AppRoot(vm, dropbox, drive, settings)
                     } else {
                         PermissionScreen(onRequest = { requestStoragePermission() })
                     }
@@ -141,7 +151,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ---------- অনুমতি ----------
+// ---------- Permission ----------
 fun hasStoragePermission(context: Context): Boolean =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
         Environment.isExternalStorageManager()
@@ -157,25 +167,37 @@ fun PermissionScreen(onRequest: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("ফাইল অ্যাক্সেসের অনুমতি দরকার", style = MaterialTheme.typography.titleLarge)
+        Text("Storage permission required", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(12.dp))
-        Text("ফোনের ফাইল দেখতে ও পরিচালনা করতে অনুমতি দিন।", textAlign = TextAlign.Center)
+        Text("Allow access so the app can view and manage files on your phone.", textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
-        Button(onClick = onRequest) { Text("অনুমতি দিন") }
+        Button(onClick = onRequest) { Text("Grant permission") }
     }
 }
 
-// ---------- নিচের ট্যাব ----------
+// ---------- Bottom tabs ----------
 enum class MainTab(val label: String, val icon: ImageVector) {
-    FILES("ফাইল", Icons.Default.Folder),
+    FILES("Files", Icons.Default.Folder),
     FTP("FTP", Icons.Default.Wifi),
     DRIVE("Drive", Icons.Default.Cloud),
-    DROPBOX("Dropbox", Icons.Default.CloudQueue)
+    DROPBOX("Dropbox", Icons.Default.CloudQueue),
+    SETTINGS("Settings", Icons.Default.Settings)
 }
 
 @Composable
-fun AppRoot(vm: FileExplorerViewModel, dropbox: DropboxRepository, drive: DriveRepository) {
+fun AppRoot(
+    vm: FileExplorerViewModel,
+    dropbox: DropboxRepository,
+    drive: DriveRepository,
+    settings: SettingsState
+) {
     var tab by rememberSaveable { mutableStateOf(MainTab.FILES) }
+
+    // সেটিংস বদলালে ফাইল তালিকায় সঙ্গে সঙ্গে প্রয়োগ হবে
+    LaunchedEffect(settings.showHidden, settings.sort) {
+        vm.applyDefaults(settings.showHidden, settings.sort)
+    }
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -196,12 +218,13 @@ fun AppRoot(vm: FileExplorerViewModel, dropbox: DropboxRepository, drive: DriveR
                 MainTab.FTP -> FtpPanel()
                 MainTab.DRIVE -> DriveScreen(drive)
                 MainTab.DROPBOX -> DropboxScreen(dropbox)
+                MainTab.SETTINGS -> SettingsScreen(settings)
             }
         }
     }
 }
 
-// ---------- ফাইল এক্সপ্লোরার ----------
+// ---------- File explorer ----------
 sealed interface DialogType {
     data object NewFolder : DialogType
     data class Rename(val file: File) : DialogType
@@ -240,7 +263,7 @@ fun FileExplorerScreen(vm: FileExplorerViewModel) {
             TopAppBar(
                 title = {
                     Text(
-                        text = ui.searchQuery?.let { "খোঁজা: $it" }
+                        text = ui.searchQuery?.let { "Search: $it" }
                             ?: ui.currentDir.absolutePath
                                 .removePrefix(FileOps.root.absolutePath)
                                 .ifEmpty { "/" },
@@ -250,27 +273,27 @@ fun FileExplorerScreen(vm: FileExplorerViewModel) {
                 },
                 actions = {
                     IconButton(onClick = { dialog = DialogType.Search }) {
-                        Icon(Icons.Default.Search, "খুঁজুন")
+                        Icon(Icons.Default.Search, "Search")
                     }
                     IconButton(onClick = { vm.toggleHidden() }) {
                         Icon(
                             if (ui.showHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            "লুকানো ফাইল"
+                            "Hidden files"
                         )
                     }
                     Box {
                         IconButton(onClick = { sortMenu = true }) {
-                            Icon(Icons.Default.MoreVert, "মেনু")
+                            Icon(Icons.Default.MoreVert, "Menu")
                         }
                         DropdownMenu(expanded = sortMenu, onDismissRequest = { sortMenu = false }) {
                             SortBy.entries.forEach { sort ->
                                 DropdownMenuItem(
-                                    text = { Text("${sort.label}${if (ui.sort == sort) " ✓" else ""}") },
+                                    text = { Text("${sort.label}${if (ui.sort == sort) "  ✓" else ""}") },
                                     onClick = { vm.setSort(sort); sortMenu = false }
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("নিজের APK ব্যাকআপ") },
+                                text = { Text("Back up own APK") },
                                 onClick = { vm.backupApk(context); sortMenu = false }
                             )
                         }
@@ -295,7 +318,7 @@ fun FileExplorerScreen(vm: FileExplorerViewModel) {
         floatingActionButton = {
             if (ui.selected.isEmpty() && ui.searchQuery == null) {
                 FloatingActionButton(onClick = { dialog = DialogType.NewFolder }) {
-                    Icon(Icons.Default.Add, "নতুন ফোল্ডার")
+                    Icon(Icons.Default.Add, "New folder")
                 }
             }
         },
@@ -307,7 +330,7 @@ fun FileExplorerScreen(vm: FileExplorerViewModel) {
 
             if (ui.items.isEmpty() && !ui.busy) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("এখানে কোনো ফাইল নেই")
+                    Text("No files here")
                 }
             }
 
@@ -330,41 +353,41 @@ fun FileExplorerScreen(vm: FileExplorerViewModel) {
         }
     }
 
-    // ---------- ডায়ালগ ----------
+    // ---------- Dialogs ----------
     when (val d = dialog) {
         DialogType.NewFolder -> InputDialog(
-            title = "নতুন ফোল্ডার",
+            title = "New folder",
             initial = "",
             onDismiss = { dialog = null },
             onConfirm = { vm.createFolder(it); dialog = null }
         )
         is DialogType.Rename -> InputDialog(
-            title = "নাম পরিবর্তন",
+            title = "Rename",
             initial = d.file.name,
             onDismiss = { dialog = null },
             onConfirm = { vm.rename(d.file, it); dialog = null }
         )
         DialogType.Search -> InputDialog(
-            title = "ফাইল খুঁজুন",
+            title = "Search files",
             initial = "",
             onDismiss = { dialog = null },
             onConfirm = { vm.search(it); dialog = null }
         )
         DialogType.Zip -> InputDialog(
-            title = "ZIP ফাইলের নাম",
+            title = "ZIP file name",
             initial = "archive",
             onDismiss = { dialog = null },
             onConfirm = { vm.zipSelected(it); dialog = null }
         )
         DialogType.Delete -> AlertDialog(
             onDismissRequest = { dialog = null },
-            title = { Text("মুছে ফেলবেন?") },
-            text = { Text("নির্বাচিত ${ui.selected.size}টি আইটেম স্থায়ীভাবে মুছে যাবে।") },
+            title = { Text("Delete?") },
+            text = { Text("${ui.selected.size} selected item(s) will be permanently deleted.") },
             confirmButton = {
-                TextButton(onClick = { vm.deleteSelected(); dialog = null }) { Text("মুছুন") }
+                TextButton(onClick = { vm.deleteSelected(); dialog = null }) { Text("Delete") }
             },
             dismissButton = {
-                TextButton(onClick = { dialog = null }) { Text("বাতিল") }
+                TextButton(onClick = { dialog = null }) { Text("Cancel") }
             }
         )
         null -> Unit
@@ -386,10 +409,10 @@ fun InputDialog(
             OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true)
         },
         confirmButton = {
-            TextButton(onClick = { if (text.isNotBlank()) onConfirm(text.trim()) }) { Text("ঠিক আছে") }
+            TextButton(onClick = { if (text.isNotBlank()) onConfirm(text.trim()) }) { Text("OK") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("বাতিল") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
@@ -413,18 +436,18 @@ fun BottomBar(
                 Modifier.fillMaxWidth().padding(8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                TextButton(onClick = onCopy) { Text("কপি") }
-                TextButton(onClick = onCut) { Text("কাট") }
-                TextButton(onClick = onSelectAll) { Text("সব") }
+                TextButton(onClick = onCopy) { Text("Copy") }
+                TextButton(onClick = onCut) { Text("Cut") }
+                TextButton(onClick = onSelectAll) { Text("All") }
                 TextButton(onClick = onZip) { Text("ZIP") }
                 if (ui.selected.size == 1) {
                     val only = ui.selected.first()
-                    TextButton(onClick = { onRename(only) }) { Text("নাম") }
+                    TextButton(onClick = { onRename(only) }) { Text("Rename") }
                     if (only.extension.equals("zip", ignoreCase = true)) {
-                        TextButton(onClick = { onUnzip(only) }) { Text("আনজিপ") }
+                        TextButton(onClick = { onUnzip(only) }) { Text("Unzip") }
                     }
                 }
-                TextButton(onClick = onDelete) { Text("মুছুন") }
+                TextButton(onClick = onDelete) { Text("Delete") }
             }
         }
 
@@ -434,11 +457,11 @@ fun BottomBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "${ui.clipboard.size}টি আইটেম (${if (ui.clipMode == ClipMode.CUT) "কাট" else "কপি"})",
+                    "${ui.clipboard.size} item(s) (${if (ui.clipMode == ClipMode.CUT) "cut" else "copied"})",
                     Modifier.weight(1f)
                 )
-                TextButton(onClick = onClearClipboard) { Text("বাতিল") }
-                Button(onClick = onPaste) { Text("এখানে পেস্ট") }
+                TextButton(onClick = onClearClipboard) { Text("Cancel") }
+                Button(onClick = onPaste) { Text("Paste here") }
             }
         }
     }
@@ -478,18 +501,18 @@ fun FileRow(
             )
             Text(
                 text = buildString {
-                    append(if (item.isDirectory) "ফোল্ডার" else formatSize(item.size))
+                    append(if (item.isDirectory) "Folder" else formatSize(item.size))
                     append(" • ")
                     append(formatDate(item.lastModified))
                 },
                 style = MaterialTheme.typography.bodySmall
             )
         }
-        if (selected) Icon(Icons.Default.Check, contentDescription = "নির্বাচিত")
+        if (selected) Icon(Icons.Default.Check, contentDescription = "Selected")
     }
 }
 
-// ---------- সহায়ক ফাংশন ----------
+// ---------- Helpers ----------
 fun openFile(context: Context, file: File) {
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     val mime = MimeTypeMap.getSingleton()
@@ -500,7 +523,7 @@ fun openFile(context: Context, file: File) {
     try {
         context.startActivity(intent)
     } catch (e: Exception) {
-        Toast.makeText(context, "এই ফাইল খোলার মতো অ্যাপ পাওয়া যায়নি", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "No app found to open this file", Toast.LENGTH_SHORT).show()
     }
 }
 

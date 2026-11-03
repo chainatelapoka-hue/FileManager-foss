@@ -69,7 +69,7 @@ object FileOps {
         if (src.isDirectory) {
             require(!dstDir.canonicalPath.startsWith(src.canonicalPath + File.separator) &&
                     dstDir.canonicalPath != src.canonicalPath) {
-                "ফোল্ডারটি নিজের ভেতরে কপি করা যাবে না"
+                "A folder cannot be copied into itself"
             }
             target.mkdirs()
             src.listFiles()?.forEach { copy(it, target) }
@@ -87,21 +87,21 @@ object FileOps {
     }
 
     fun delete(file: File) {
-        if (!file.deleteRecursively()) error("মুছা যায়নি: ${file.name}")
+        if (!file.deleteRecursively()) error("Could not delete: ${file.name}")
     }
 
     fun rename(file: File, newName: String) {
-        require(newName.isNotBlank()) { "নাম খালি রাখা যাবে না" }
+        require(newName.isNotBlank()) { "Name cannot be empty" }
         val to = File(file.parentFile, newName)
-        require(!to.exists()) { "এই নামে ফাইল আছে" }
-        if (!file.renameTo(to)) error("নাম পরিবর্তন ব্যর্থ")
+        require(!to.exists()) { "A file with this name already exists" }
+        if (!file.renameTo(to)) error("Rename failed")
     }
 
     fun createFolder(parent: File, name: String) {
-        require(name.isNotBlank()) { "নাম খালি রাখা যাবে না" }
+        require(name.isNotBlank()) { "Name cannot be empty" }
         val dir = File(parent, name)
-        require(!dir.exists()) { "এই নামে ফোল্ডার আছে" }
-        if (!dir.mkdirs()) error("ফোল্ডার তৈরি হয়নি")
+        require(!dir.exists()) { "A folder with this name already exists" }
+        if (!dir.mkdirs()) error("Could not create folder")
     }
 
     fun unzip(zip: File, destDir: File) {
@@ -111,7 +111,7 @@ object FileOps {
             while (entry != null) {
                 val out = File(destDir, entry.name)
                 // Zip Slip আক্রমণ ঠেকানো
-                require(out.canonicalPath.startsWith(destPath)) { "অনিরাপদ zip এন্ট্রি" }
+                require(out.canonicalPath.startsWith(destPath)) { "Unsafe zip entry" }
                 if (entry.isDirectory) {
                     out.mkdirs()
                 } else {

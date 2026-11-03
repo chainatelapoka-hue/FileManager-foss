@@ -28,7 +28,7 @@ import kotlinx.coroutines.withContext
 fun DriveScreen(repo: DriveRepository) {
     var account by remember { mutableStateOf<GoogleSignInAccount?>(null) }
     var files by remember { mutableStateOf<List<DriveFile>>(emptyList()) }
-    var status by remember { mutableStateOf("সাইন-ইন করা হয়নি") }
+    var status by remember { mutableStateOf("Not signed in") }
 
     val signInLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -36,9 +36,9 @@ fun DriveScreen(repo: DriveRepository) {
         GoogleSignIn.getSignedInAccountFromIntent(result.data)
             .addOnSuccessListener { acc ->
                 account = acc
-                status = "সাইন-ইন: ${acc.email}"
+                status = "Signed in: ${acc.email}"
             }
-            .addOnFailureListener { status = "সাইন-ইন ব্যর্থ: ${it.message}" }
+            .addOnFailureListener { status = "Sign-in failed: ${it.message}" }
     }
 
     LaunchedEffect(account) {
@@ -46,14 +46,14 @@ fun DriveScreen(repo: DriveRepository) {
         try {
             files = withContext(Dispatchers.IO) { repo.list(repo.service(acc)) }
         } catch (e: Exception) {
-            status = "তালিকা আনা যায়নি: ${e.message}"
+            status = "Could not load files: ${e.message}"
         }
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         Text(status)
         Button(onClick = { signInLauncher.launch(repo.signInClient().signInIntent) }) {
-            Text("Google Drive-এ সাইন-ইন")
+            Text("Sign in to Google Drive")
         }
         LazyColumn(Modifier.fillMaxSize()) {
             items(files, key = { it.id ?: it.name ?: "" }) { f ->

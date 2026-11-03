@@ -48,6 +48,12 @@ class FileExplorerViewModel : ViewModel() {
         return true
     }
 
+    /** সেটিংস থেকে পাওয়া ডিফল্ট (হিডেন ফাইল ও সর্ট) প্রয়োগ করে */
+    fun applyDefaults(showHidden: Boolean, sort: SortBy) {
+        _state.update { it.copy(showHidden = showHidden, sort = sort) }
+        refresh()
+    }
+
     fun refresh() {
         viewModelScope.launch {
             val s = _state.value
@@ -109,7 +115,7 @@ class FileExplorerViewModel : ViewModel() {
         val mode = s.clipMode ?: return
         val items = s.clipboard
         val dest = s.currentDir
-        runOp("${items.size}টি আইটেম ${if (mode == ClipMode.CUT) "সরানো" else "কপি"} হয়েছে") {
+        runOp("${items.size} item(s) ${if (mode == ClipMode.CUT) "moved" else "copied"}") {
             items.forEach { file ->
                 if (mode == ClipMode.COPY) FileOps.copy(file, dest) else FileOps.move(file, dest)
             }
@@ -120,22 +126,22 @@ class FileExplorerViewModel : ViewModel() {
     // ---------- মুছে ফেলা, নাম, ফোল্ডার, ZIP ----------
     fun deleteSelected() {
         val targets = _state.value.selected.toList()
-        runOp("${targets.size}টি আইটেম মুছে ফেলা হয়েছে") {
+        runOp("${targets.size} item(s) deleted") {
             targets.forEach { FileOps.delete(it) }
         }
     }
 
     fun rename(file: File, newName: String) =
-        runOp("নাম পরিবর্তন হয়েছে") { FileOps.rename(file, newName) }
+        runOp("Renamed") { FileOps.rename(file, newName) }
 
     fun createFolder(name: String) {
         val dir = _state.value.currentDir
-        runOp("ফোল্ডার তৈরি হয়েছে") { FileOps.createFolder(dir, name) }
+        runOp("Folder created") { FileOps.createFolder(dir, name) }
     }
 
     fun unzip(zip: File) {
         val dir = _state.value.currentDir
-        runOp("আনজিপ সম্পন্ন") {
+        runOp("Unzipped") {
             val dest = FileOps.uniqueTarget(dir, zip.nameWithoutExtension).apply { mkdirs() }
             FileOps.unzip(zip, dest)
         }
@@ -145,11 +151,11 @@ class FileExplorerViewModel : ViewModel() {
         val s = _state.value
         val sources = s.selected.toList()
         val out = FileOps.uniqueTarget(s.currentDir, "$name.zip")
-        runOp("ZIP তৈরি হয়েছে: ${out.name}") { FileOps.zip(sources, out) }
+        runOp("ZIP created: ${out.name}") { FileOps.zip(sources, out) }
     }
 
     fun backupApk(context: Context) {
-        runOp("APK ব্যাকআপ Downloads-এ সংরক্ষিত") { ApkBackup.backupOwnApk(context) }
+        runOp("APK backup saved to Downloads") { ApkBackup.backupOwnApk(context) }
     }
 
     fun consumeMessage() = _state.update { it.copy(message = null) }
@@ -162,7 +168,7 @@ class FileExplorerViewModel : ViewModel() {
                 withContext(Dispatchers.IO) { block() }
                 successMsg
             } catch (e: Exception) {
-                "ত্রুটি: ${e.message ?: "অজানা সমস্যা"}"
+                "Error: ${e.message ?: "Unknown error"}"
             }
             _state.update { it.copy(busy = false, message = msg, selected = emptySet()) }
             refresh()

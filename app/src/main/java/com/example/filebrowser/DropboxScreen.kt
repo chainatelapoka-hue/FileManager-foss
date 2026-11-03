@@ -34,7 +34,7 @@ fun DropboxScreen(repo: DropboxRepository) {
     var items by remember { mutableStateOf<List<Metadata>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    // Dropbox লগইন থেকে ফিরে এলে টোকেন নিন
+    // Dropbox login থেকে ফিরে এলে token সংরক্ষণ
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         if (repo.completeLoginIfPending()) loggedIn = true
     }
@@ -45,31 +45,31 @@ fun DropboxScreen(repo: DropboxRepository) {
             items = withContext(Dispatchers.IO) { repo.list(client, path) }
             error = null
         } catch (e: Exception) {
-            error = "ত্রুটি: ${e.message}"
+            error = "Error: ${e.message}"
         }
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         if (!loggedIn) {
-            Text("Dropbox-এ সাইন-ইন করুন")
+            Text("Sign in to Dropbox")
             if (!repo.hasAppKey) {
                 Text(
-                    "local.properties-এ DROPBOX_APP_KEY=আপনার_key যোগ করে আবার বিল্ড করুন।",
+                    "Add DROPBOX_APP_KEY=your_key to local.properties and build again.",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
             Button(onClick = { repo.startLogin() }, enabled = repo.hasAppKey) {
-                Text("Dropbox-এ সাইন-ইন")
+                Text("Sign in to Dropbox")
             }
             return@Column
         }
 
         Row {
             if (path.isNotEmpty()) {
-                TextButton(onClick = { path = path.substringBeforeLast('/') }) { Text("⬆ উপরে") }
+                TextButton(onClick = { path = path.substringBeforeLast('/') }) { Text("⬆ Up") }
             }
             TextButton(onClick = { repo.logout(); loggedIn = false; items = emptyList() }) {
-                Text("লগআউট")
+                Text("Log out")
             }
         }
         Text(if (path.isEmpty()) "/" else path)

@@ -32,17 +32,17 @@ fun FtpPanel() {
         Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("FTP সার্ভার", style = MaterialTheme.typography.titleLarge)
+        Text("FTP server", style = MaterialTheme.typography.titleLarge)
         Text(
             if (running)
-                "চালু: ftp://${FtpServerManager.localIp()}:${FtpServerManager.PORT}\n" +
-                    "ইউজার: user   পাসওয়ার্ড: $password"
-            else "বন্ধ আছে। ফোন ও কম্পিউটার একই Wi-Fi-তে থাকতে হবে।"
+                "Running: ftp://${FtpServerManager.localIp()}:${FtpServerManager.PORT}\n" +
+                    "User: user   Password: $password"
+            else "Stopped. Your phone and computer must be on the same Wi-Fi."
         )
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("পাসওয়ার্ড") },
+            label = { Text("Password") },
             enabled = !running,
             singleLine = true
         )
@@ -50,7 +50,7 @@ fun FtpPanel() {
             if (running) FtpService.stop(context) else FtpService.start(context, password)
             running = !running
         }) {
-            Text(if (running) "বন্ধ করুন" else "চালু করুন")
+            Text(if (running) "Stop" else "Start")
         }
     }
 }

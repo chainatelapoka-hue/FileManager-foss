@@ -48,14 +48,14 @@ class FtpService : Service() {
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(CHANNEL_ID, "FTP সার্ভার", NotificationManager.IMPORTANCE_LOW)
+            val ch = NotificationChannel(CHANNEL_ID, "FTP server", NotificationManager.IMPORTANCE_LOW)
             getSystemService(NotificationManager::class.java).createNotificationChannel(ch)
         }
     }
 
     private fun buildNotification(): Notification =
         NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("FTP সার্ভার চালু আছে")
+            .setContentTitle("FTP server is running")
             .setContentText("ftp://${FtpServerManager.localIp()}:${FtpServerManager.PORT}")
             .setSmallIcon(android.R.drawable.stat_sys_upload_done)
             .setOngoing(true)
