@@ -1,0 +1,22 @@
+# Gradle / build
+.gradle/
+build/
+*/build/
+.idea/
+*.iml
+local.properties
+
+# Android Studio
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore ও সিক্রেট (কখনো GitHub-এ যাবে না)
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+
+# Google কনফিগ যেখানে কী থাকতে পারে
+google-services.json
