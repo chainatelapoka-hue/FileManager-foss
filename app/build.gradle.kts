@@ -49,7 +49,9 @@ android {
                 "META-INF/LGPL2.1",
                 "META-INF/DEPENDENCIES",
                 "META-INF/LICENSE*",
-                "META-INF/NOTICE*"
+                "META-INF/NOTICE*",
+                "META-INF/INDEX.LIST",
+                "META-INF/versions/9/module-info.class"
             )
         }
     }
