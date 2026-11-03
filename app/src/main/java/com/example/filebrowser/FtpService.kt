@@ -20,7 +20,8 @@ class FtpService : Service() {
 
         fun start(context: Context, password: String) {
             val i = Intent(context, FtpService::class.java).putExtra(EXTRA_PASSWORD, password)
-            context.startForegroundService(i)
+            // Android 7 (API 24-25)-এ startForegroundService নেই; ContextCompat সেটি সামলায়
+            androidx.core.content.ContextCompat.startForegroundService(context, i)
         }
 
         fun stop(context: Context) {

@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.filebrowser"
-        minSdk = 26
+        minSdk = 24   // Android 7.0 (Nougat)
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
@@ -36,6 +36,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Android 7-এ java.time ইত্যাদি নেই; লাইব্রেরি থেকে সেগুলো ব্যবহার হলে এটি সামলায়
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -58,6 +60,8 @@ android {
 }
 
 dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.2")
+
     implementation(platform("androidx.compose:compose-bom:2024.10.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
