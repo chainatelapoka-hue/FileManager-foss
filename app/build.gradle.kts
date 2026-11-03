@@ -75,6 +75,6 @@ dependencies {
     implementation("com.google.apis:google-api-services-drive:v3-rev20240521-2.0.0")
     implementation("com.google.http-client:google-http-client-gson:1.45.0")
 
-    // Dropbox
-    implementation("com.dropbox.core:dropbox-core-sdk:7.0.0")
+    // Dropbox (Android-এর লগইন helper সহ; এটি dropbox-core-sdk-ও টানে)
+    implementation("com.dropbox.core:dropbox-android-sdk:7.0.0")
 }
